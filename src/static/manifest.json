@@ -1,0 +1,26 @@
+{
+  "name": "Binomo Trading Extension",
+  "description": "Binomo Trading Extension in React!",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "action": {
+    
+  },
+  "permissions": ["alarms", "contextMenus", "storage"],
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://binomo.com/trading"],
+      "js": ["contentScript.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
