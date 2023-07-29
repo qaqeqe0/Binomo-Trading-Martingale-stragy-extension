@@ -7,21 +7,19 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import StopIcon from '@mui/icons-material/Stop';
 import { Messages } from '../utils/messages'
 import waitForNextMinuteStart,
-  {
-    getDelayTime,
-    getSecondsNow,
-    convertPercentageStringToNumber,
-    changeInputValue,
-    calculateNextBetAmount,
-    convertCurrencyStringToNumber
-  } from '../utils/features'
+{
+  getDelayTime,
+  getSecondsNow,
+  convertPercentageStringToNumber,
+  changeInputValue,
+  calculateNextBetAmount,
+  convertCurrencyStringToNumber
+} from '../utils/features'
 import findElement, {
   waitForElement,
   waitForValue,
   waitForElementToDisappear,
   waitForElementToBeLoaded,
-  findElements,
-  isElementLoaded,
   sleep
 } from '../utils/queryDOM'
 
@@ -35,34 +33,27 @@ enum ACTION_BUTTON {
   START = "START",
   STOP = "STOP"
 }
-
-type ID_TIMEOUT = {
-  current: NodeJS.Timeout
-}
 type WebElement = HTMLElement | null
 
 const App: React.FC<{}> = () => {
-  const idTimeout = useRef<NodeJS.Timeout>()
-  const idSetTimeout = useRef<NodeJS.Timeout>()
   const callBtn = useRef<WebElement>(document.getElementById("qa_trading_dealUpButton"))
   const putBtn = useRef<WebElement>(document.getElementById("qa_trading_dealDownButton"))
   const historyEle = useRef<WebElement>(document.querySelector("#qa_historyButton"))
-  const toastWinEle = useRef<WebElement>(document.querySelector("main.ng-star-inserted div.option.win"))
-  const toastLossEle = useRef<WebElement>(document.querySelector("main.ng-star-inserted div.option"))
   const procent = useRef<WebElement>(document.querySelector("button.btn span.procent"))
   const symbolTitle = useRef<WebElement>(document.querySelector("button.btn span.title"))
-  const progressBarItems = useRef<NodeListOf<WebElement>>(document.querySelectorAll("app-progress-bar.ng-star-inserted div.progress-bar progress-bar-item"))
   const inputAmount = useRef<HTMLInputElement>(document.querySelector("#amount-counter input"))
 
   const isWin = useRef<boolean>()
   const counter = useRef<number>(0)
   const isStopped = useRef<boolean>(false)
-  let betAmounts: number[] = [23000, 54118, 117785, 256357, 557953, 1214367]
+  // let betAmounts: number[] = [23000, 54118, 117785, 256357, 557953, 1214367]
 
-  const newBetAmouts = (profitPercentage: number) => {
+  const newBetAmouts = (firstBetAmount: number, profitPercentage: number) => {
     const qaTradingBalance = document.getElementById("qa_trading_balance")
     const balance: number = qaTradingBalance ? convertCurrencyStringToNumber(qaTradingBalance.textContent.trim()) : 0
-    const firstBetAmount: number = betAmounts[0]
+    // const firstBetAmount: number = betAmounts[0]
+    // const losses = [firstBetAmount];
+    // const firstBetAmount: number = 2300000
     const losses = [firstBetAmount];
     const calculateNextBet = (): any => {
       const nextBetAmount = calculateNextBetAmount(losses, firstBetAmount, profitPercentage);
@@ -70,7 +61,7 @@ const App: React.FC<{}> = () => {
         console.log("New Bet Amounts:", losses)
         return
       }
-      
+
       losses.push(Math.floor(+nextBetAmount))
       calculateNextBet()
     }
@@ -79,12 +70,12 @@ const App: React.FC<{}> = () => {
   }
 
   const profitPercent: number = convertPercentageStringToNumber(procent.current.textContent.trim())
-  betAmounts = profitPercent !== 85 && newBetAmouts(profitPercent/100)
+  // betAmounts = profitPercent !== 85 ? newBetAmouts(profitPercent/100) : betAmounts
+  const betAmounts = newBetAmouts(23000, profitPercent / 100) ?? [23000, 54118, 117785, 256357, 557953, 1214367]
 
   const handleScollBet = async (ACTION: BUTTON_ELEMENT) => {
     let loseCounter: number = 0
     let winCounter: number = 0
-    let index: number = 0
     if (isStopped.current) {
       console.log("Stopped")
       return
@@ -105,9 +96,14 @@ const App: React.FC<{}> = () => {
           return
         }
         if (btnAction) {
+          changeInputValue(inputAmount.current, "")
+          changeInputValue(inputAmount.current, betAmounts[loseCounter])
+          const isMatched: boolean = await waitForValue(betAmounts[loseCounter], inputAmount.current)
+          isMatched && console.log("Next Amount is", betAmounts[loseCounter])
+          if (!isMatched) break;
           btnAction.click()
           console.log(`Action ${ACTION} is Started with Amount is ${inputAmount.current.value}`)
-          changeInputValue(inputAmount.current, "")
+          // changeInputValue(inputAmount.current, "")
           await sleep(getDelayTime())
           const progressBarItem: WebElement = await waitForElement("app-progress-bar.ng-star-inserted div.progress-bar progress-bar-item")
           !progressBarItem && btnAction.click()
@@ -121,7 +117,6 @@ const App: React.FC<{}> = () => {
               loseCounter = 0
               isWin.current = true
               ++winCounter
-              // index = loseCounter
 
               console.log("Win", +winCounter)
             } else {
@@ -135,11 +130,11 @@ const App: React.FC<{}> = () => {
               }
             }
 
-            changeInputValue(inputAmount.current, "")
-            changeInputValue(inputAmount.current, betAmounts[loseCounter])
-            const isMatched: boolean = await waitForValue(betAmounts[loseCounter], inputAmount.current)
-            isMatched && console.log("Next Amount is", betAmounts[loseCounter])
-            if (!isMatched) break;
+            // changeInputValue(inputAmount.current, "")
+            // changeInputValue(inputAmount.current, betAmounts[loseCounter])
+            // const isMatched: boolean = await waitForValue(betAmounts[loseCounter], inputAmount.current)
+            // isMatched && console.log("Next Amount is", betAmounts[loseCounter])
+            // if (!isMatched) break;
           }
 
           if (counter.current % 5 === 0 && historyEle) {
@@ -151,11 +146,9 @@ const App: React.FC<{}> = () => {
 
           if (isStopped.current) {
             console.log("112 - Stopped!")
-            // break;
             return
           }
 
-          // if (loseCounter >= betAmounts.length) return
         } else {
           callBtn.current = document.getElementById("qa_trading_dealUpButton")
         }
@@ -190,11 +183,6 @@ const App: React.FC<{}> = () => {
     isStopped.current = true
     console.log("Stopping...")
   }, []);
-
-  const handleStartButtonClick = useCallback(() => {
-  }, []);
-
-
 
   return (
     <Card className="overlayCard" sx={{ minWidth: 275 }}>
