@@ -13,14 +13,16 @@ import waitForNextMinuteStart,
   convertPercentageStringToNumber,
   changeInputValue,
   calculateNextBetAmount,
-  convertCurrencyStringToNumber
+  convertCurrencyStringToNumber,
+  observeElement
 } from '../utils/features'
 import findElement, {
   waitForElement,
   waitForValue,
   waitForElementToDisappear,
   waitForElementToBeLoaded,
-  sleep
+  sleep,
+  findElements
 } from '../utils/queryDOM'
 
 import './contentScript.css'
@@ -73,6 +75,31 @@ const App: React.FC<{}> = () => {
   // betAmounts = profitPercent !== 85 ? newBetAmouts(profitPercent/100) : betAmounts
   const betAmounts = newBetAmouts(23000, profitPercent / 100) ?? [23000, 54118, 117785, 256357, 557953, 1214367]
 
+  // Hide balance number
+  const balanceEle = document.getElementById("qa_trading_balance")
+  if (balanceEle) balanceEle.style.display = "none"
+
+  useEffect(() => {
+    const targetElement: HTMLElement | null = document.querySelector("vui-sidebar.hydrated")
+    const callbackFunction = () => {
+      const historyEle: WebElement | null = document.querySelector("div.sidebar_open__1WEhL")
+      // Xử lý khi phần tử xuất hiện hoặc biến mất
+      const isTargetNodeInDOM = targetElement.contains(historyEle);
+      if (isTargetNodeInDOM) {
+        // Hide result element
+        const resultsEle: NodeListOf<HTMLElement> = document.querySelectorAll(".result .font-regular-m.offset-row-sm-2xs")
+        resultsEle && resultsEle.forEach(ele => ele.style.display = "none")
+        console.log('Phần tử đã xuất hiện', historyEle.getAttribute("class"));
+      } else {
+        console.log('Phần tử đã biến mất');
+      }
+    };
+  
+    // Bắt đầu theo dõi sự thay đổi của targetElement
+    const observer = observeElement(targetElement, callbackFunction);
+    console.log(observer);
+  }, [])
+
   const handleScollBet = async (ACTION: BUTTON_ELEMENT) => {
     let loseCounter: number = 0
     let winCounter: number = 0
@@ -104,9 +131,9 @@ const App: React.FC<{}> = () => {
           btnAction.click()
           console.log(`Action ${ACTION} is Started with Amount is ${inputAmount.current.value}`)
           // changeInputValue(inputAmount.current, "")
-          await sleep(getDelayTime())
           const progressBarItem: WebElement = await waitForElement("app-progress-bar.ng-star-inserted div.progress-bar progress-bar-item")
           !progressBarItem && btnAction.click()
+          await sleep(getDelayTime())
           ++counter.current
           await waitForElementToBeLoaded("main.ng-star-inserted div.option", 65000)
           const toastLose = await findElement("main.ng-star-inserted div.option")
@@ -135,6 +162,8 @@ const App: React.FC<{}> = () => {
             // const isMatched: boolean = await waitForValue(betAmounts[loseCounter], inputAmount.current)
             // isMatched && console.log("Next Amount is", betAmounts[loseCounter])
             // if (!isMatched) break;
+          } else {
+              console.log("toastLose", toastLose)
           }
 
           if (counter.current % 5 === 0 && historyEle) {
