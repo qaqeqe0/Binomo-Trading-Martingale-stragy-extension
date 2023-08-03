@@ -89,9 +89,9 @@ const App: React.FC<{}> = () => {
         // Hide result element
         const resultsEle: NodeListOf<HTMLElement> = document.querySelectorAll(".result .font-regular-m.offset-row-sm-2xs")
         resultsEle && resultsEle.forEach(ele => ele.style.display = "none")
-        console.log('Phần tử đã xuất hiện', historyEle.getAttribute("class"));
+        console.log('Results History đã xuất hiện');
       } else {
-        console.log('Phần tử đã biến mất');
+        console.log('Results History đã biến mất');
       }
     };
   
